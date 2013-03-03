@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Soshace</title>
+    <style>
+        *{
+            margin:0;
+            padding:0;
+        }
+        html, body{
+            height:100%;
+        }
+        body{
+            overflow: hidden;
+        }
+        #page{
+            border: 0;
+            width:100%;
+            height:100%;
+        }
+    </style>
+</head>
+<body>
+    <iframe id='page' wmode='opaque' resize='noresize' frameborder='0'></iframe>
+</body>
+</html>
+<script>
+    (function(window, undefined){
+        var document = window.document;
+        ({
+            urls: [
+                '//lidersbor.ru',
+                '//htmlbook.ru',
+                '//vk.com',
+                '//google.com',
+                '//ya.ru'
+            ],
+            init: function(){
+                var T = this;
+                T.$page = document.getElementById('page');
+                T.startGame();
+            },
+            startGame: function(){
+                var T = this,
+                        pingInfo = [], //info about ping to hosts
+                        complete = 0, //games completed
+                        time = 0, //ping time
+                        intervalID = setInterval(function(){
+                            time += 10;
+                        }, 10);
+                for(var i = 0; i < T.urls.length; i ++){
+                    (function(url, i){
+                        T.ping(url, function(data){
+                            complete ++;
+                            pingInfo.push({
+                                url: url,
+                                status: data.status,
+                                time: time
+                            });
+                            if(complete == T.urls.length) {
+                                clearInterval(intervalID);
+                                T.sendInfo(pingInfo);
+                            }
+                        });
+                    })(T.urls[i]);
+                }
+            },
+            ping: function(url, callback)
+            {
+                var ajaxGet;
+                try {
+                    ajaxGet = new XMLHttpRequest();
+                    ajaxGet.open('GET', url, true);
+                    ajaxGet.setRequestHeader("Content-Type", "text/html");
+                }catch (err) {
+                    ajaxGet = new ActiveXObject("Microsoft.XMLHTTP");
+                    ajaxGet.open('GET', url, true);
+                    ajaxGet.setRequestHeader("Content-Type", "text/html");
+                }
+                ajaxGet.onreadystatechange = function() {
+                    if (ajaxGet.readyState == 4) {
+                        if(ajaxGet.status >= 200 && ajaxGet.status < 300) {
+                            callback({status: 'ok'});
+                            return;
+                        }
+                        callback({status: 'error'});
+                    }
+                }
+                ajaxGet.send(null);
+            },
+            sendInfo: function(pingInfo){
+                console.log('Ping information: ', pingInfo);
+            }
+        }).init();
+
+//        $page.setAttribute('src', urls[0]);
+    })(window);
+</script>
