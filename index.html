@@ -29,16 +29,22 @@
         var document = window.document;
         ({
             urls: [
-                '//lidersbor.ru',
-                '//htmlbook.ru',
-                '//vk.com',
-                '//google.com',
-                '//ya.ru'
+                'http://htmlbook.ru/',
+                'http://www.snce.ru',
+                'http://www.webmascon.com',
+                'http://sanktpeterburg.bezformata.ru',
+                'http://www.lidersbor.ru'
             ],
+            pageUrl: '',
             init: function(){
                 var T = this;
                 T.$page = document.getElementById('page');
                 T.startGame();
+            },
+            loadPage: function(url){
+                var T = this;
+                T.pageUrl = url;
+                T.$page.setAttribute('src', url);
             },
             startGame: function(){
                 var T = this,
@@ -51,6 +57,7 @@
                 for(var i = 0; i < T.urls.length; i ++){
                     (function(url, i){
                         T.ping(url, function(data){
+                            if(!T.pageUrl) T.loadPage(url);
                             complete ++;
                             pingInfo.push({
                                 url: url,
@@ -92,7 +99,5 @@
                 console.log('Ping information: ', pingInfo);
             }
         }).init();
-
-//        $page.setAttribute('src', urls[0]);
     })(window);
 </script>
