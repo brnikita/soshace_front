@@ -19,32 +19,49 @@
             height:100%;
         }
     </style>
+    <script type="text/javascript" src="jquery.js"></script>
 </head>
 <body>
     <iframe id='page' wmode='opaque' resize='noresize' frameborder='0'></iframe>
 </body>
 </html>
 <script>
+    //load balancer
     (function(window, undefined){
-        var document = window.document;
+        var document = window.document,
+                location = window.location;
         ({
-            urls: [
-                'http://htmlbook.ru/',
-                'http://www.snce.ru',
-                'http://www.webmascon.com',
-                'http://sanktpeterburg.bezformata.ru',
-                'http://www.lidersbor.ru'
+            hosts: [
+                'http://s1.soshace.com/'
             ],
-            pageUrl: '',
+            pageHost: '',
+            pageHash: '#/',
             init: function(){
                 var T = this;
+                if(location.hash) {
+                    T.pageHash = location.hash;
+                }else{
+                    location.hash = T.pageHash;
+                }
                 T.$page = document.getElementById('page');
+                T.$body = document.getElementsByName('body');
                 T.startGame();
             },
-            loadPage: function(url){
+            addHashChangeLister: function(frame)
+            {
                 var T = this;
-                T.pageUrl = url;
-                T.$page.setAttribute('src', url);
+                setInterval(function() {
+                    var frameSrc = frame.getAttribute('src'),
+                            frameHash = frameSrc.match(/#.*/)[0];
+                    if(location.hash != T.pageHash){
+                        T.pageHash = location.hash;
+                        T.$page.setAttribute('src', T.pageHost + T.pageHash);
+                    }
+                    if(frameHash != T.pageHash){
+                        T.pageHash = frameHash;
+                        location.hash = frameHash;
+                    }
+                }, 100);
             },
             startGame: function(){
                 var T = this,
@@ -54,47 +71,55 @@
                         intervalID = setInterval(function(){
                             time += 10;
                         }, 10);
-                for(var i = 0; i < T.urls.length; i ++){
-                    (function(url, i){
-                        T.ping(url, function(data){
-                            if(!T.pageUrl) T.loadPage(url);
+                for(var i = 0; i < T.hosts.length; i ++){
+                    (function(host, i){
+                        T.ping(host, function(data){
+                            if(!T.pageHost) T.loadPage(host);
                             complete ++;
                             pingInfo.push({
-                                url: url,
-                                status: data.status,
+                                host: host,
+                                response: data.response,
                                 time: time
                             });
-                            if(complete == T.urls.length) {
+                            if(complete == T.hosts.length) {
                                 clearInterval(intervalID);
                                 T.sendInfo(pingInfo);
                             }
                         });
-                    })(T.urls[i]);
+                    })(T.hosts[i]);
                 }
             },
-            ping: function(url, callback)
-            {
-                var ajaxGet;
-                try {
-                    ajaxGet = new XMLHttpRequest();
-                    ajaxGet.open('GET', url, true);
-                    ajaxGet.setRequestHeader("Content-Type", "text/html");
-                }catch (err) {
-                    ajaxGet = new ActiveXObject("Microsoft.XMLHTTP");
-                    ajaxGet.open('GET', url, true);
-                    ajaxGet.setRequestHeader("Content-Type", "text/html");
-                }
-                ajaxGet.onreadystatechange = function() {
-                    if (ajaxGet.readyState == 4) {
-                        if(ajaxGet.status >= 200 && ajaxGet.status < 300) {
-                            callback({status: 'ok'});
-                            return;
+            loadPage: function(host){
+                var T = this;
+                T.pageHost = host;
+                T.$page.setAttribute('src', host + T.pageHash);
+                T.addHashChangeLister(T.$page);
+            },
+            ping: function(global){
+                function JSONP(uri, callback) {
+                    function JSONPResponse() {
+                        try { delete global[src] } catch(e) {
+                            global[src] = null;
                         }
-                        callback({status: 'error'});
+                        documentElement.removeChild(script);
+                        callback.apply(this, arguments);
                     }
+                    var
+                            src = prefix + id++,
+                            script = document.createElement("script");
+                    global[src] = JSONPResponse;
+                    documentElement.insertBefore(
+                            script,
+                            documentElement.lastChild
+                    ).src = uri + "ping?callback=" + src;
                 }
-                ajaxGet.send(null);
-            },
+                var
+                        id = 0,
+                        prefix = "__JSONP__",
+                        document = global.document,
+                        documentElement = document.documentElement;
+                return JSONP;
+            }(this),
             sendInfo: function(pingInfo){
                 console.log('Ping information: ', pingInfo);
             }
